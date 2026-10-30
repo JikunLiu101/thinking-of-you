@@ -24,16 +24,23 @@
     "default": 10,
     "hint": "A model call only happens when there is a thought."
   },
+  "timing_jitter": {
+    "description": "How much the timings drift",
+    "type": "float",
+    "default": 0.2,
+    "hint": "0.2: each wait (checking, gaps, 'just talked', typing) is give or take 20%. 0: exact."
+  },
   "quiet_start": {
     "description": "Quiet from (hour)",
     "type": "int",
-    "default": 23
+    "default": 23,
+    "hint": "Only used when her daily schedule is unknown; normally she is quiet while asleep (memory-core sleep_hour / wake_hour)."
   },
   "quiet_end": {
     "description": "Quiet until (hour)",
     "type": "int",
     "default": 9,
-    "hint": "Only a mistake that affects the owner is told during quiet hours."
+    "hint": "Only a mistake that affects the owner is told while she is asleep / in quiet hours."
   },
   "daily_cap": {
     "description": "Messages she starts per day",

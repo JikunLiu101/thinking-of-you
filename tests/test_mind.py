@@ -168,3 +168,18 @@ def test_later_and_answered():
     assert s.unanswered == 0
     # offered during one visit, then gone
     assert later_block(s, NOW + timedelta(hours=3), "爸爸", R) == ""
+
+
+def test_gate_follows_her_schedule_and_drifting_gap():
+    owner_last = NOW - timedelta(hours=5)
+    assert gate(ready_state(), NOW, owner_last, R, asleep=True)[1] is True  # asleep: only must-say things
+    late = NOW.replace(hour=23, minute=30)
+    assert gate(ready_state(), late, owner_last, R, asleep=False) == (True, False, "")  # awake a bit later tonight
+    s = ready_state(last_sent_at=(NOW - timedelta(minutes=130)).isoformat(),
+                    next_after=(NOW + timedelta(minutes=10)).isoformat())
+    assert gate(s, NOW, owner_last, R)[1] is True  # this time the gap drifted to 140 minutes
+    s.next_after = (NOW - timedelta(minutes=1)).isoformat()
+    assert gate(s, NOW, owner_last, R)[1] is False
+    near = NOW - timedelta(minutes=22)
+    assert gate(ready_state(), NOW, near, R, busy_minutes=24)[0] is False
+    assert gate(ready_state(), NOW, near, R, busy_minutes=17)[0] is True

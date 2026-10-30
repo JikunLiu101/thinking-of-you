@@ -23,8 +23,8 @@ SHARE_KEYS = ("related", "feeling", "timely", "new", "replyable")
 
 @dataclass(frozen=True)
 class Rules:
-    quiet_start: int = 23  # no reaching out from this hour...
-    quiet_end: int = 9  # ...until this hour (mistakes that affect the owner excepted)
+    quiet_start: int = 23  # no reaching out from this hour... (only when her own schedule is not known;
+    quiet_end: int = 9  # ...until this hour   normally she is quiet while she is asleep)
     daily_cap: int = 3
     min_gap_minutes: int = 120  # between two messages she starts
     max_unanswered: int = 2  # then she waits until the owner talks again
@@ -71,6 +71,7 @@ class State:
     sent_today: dict = field(default_factory=dict)  # kind -> count
     unanswered: int = 0  # messages she started since the owner last talked
     last_sent_at: str = ""
+    next_after: str = ""  # the next message she starts not before this (a gap that drifts a little each time)
     sent: list[dict] = field(default_factory=list)  # {at, kind, text, answered_at}
     later: list[dict] = field(default_factory=list)  # {at, kind, text, shown_at}
     thoughts: list[dict] = field(default_factory=list)  # decisions, for /tov_log
@@ -104,21 +105,26 @@ class State:
                 s["answered_at"] = now.isoformat()
 
 
-def gate(state: State, now: datetime, owner_last: datetime | None, rules: Rules) -> tuple[bool, bool, str]:
-    """(may reach out at all, only something that must be said, why not)."""
+def gate(state: State, now: datetime, owner_last: datetime | None, rules: Rules, *, asleep: bool | None = None,
+         busy_minutes: float | None = None) -> tuple[bool, bool, str]:
+    """(may reach out at all, only something that must be said, why not). `asleep`: from her own daily
+    schedule (falls back to the quiet hours); `busy_minutes`: this tick's (drifting) idea of "just talked"."""
     local = now.astimezone()
     if not state.owner_umo:
         return False, False, "还不知道去哪找爸爸（他得先在私聊里说过话）"
-    if owner_last is not None and now - owner_last < timedelta(minutes=rules.owner_busy_minutes):
+    busy = rules.owner_busy_minutes if busy_minutes is None else busy_minutes
+    if owner_last is not None and now - owner_last < timedelta(minutes=busy):
         return False, False, "爸爸刚刚还在，不用特意去找"
     if state.unanswered >= rules.max_unanswered:
         return True, True, f"已经连着 {state.unanswered} 条没回了，先不打扰"
-    if in_quiet_hours(local, rules):
-        return True, True, "夜里，不打扰"
+    if asleep if asleep is not None else in_quiet_hours(local, rules):
+        return True, True, "在睡觉，不打扰"
     if sum(state.sent_today.values()) >= rules.daily_cap:
         return True, True, "今天主动说得够多了"
-    last = datetime.fromisoformat(state.last_sent_at) if state.last_sent_at else None
-    if last is not None and now - last < timedelta(minutes=rules.min_gap_minutes):
+    if state.next_after:
+        if now < datetime.fromisoformat(state.next_after):
+            return True, True, "刚主动说过不久"
+    elif state.last_sent_at and now - datetime.fromisoformat(state.last_sent_at) < timedelta(minutes=rules.min_gap_minutes):
         return True, True, "刚主动说过不久"
     return True, False, ""
 

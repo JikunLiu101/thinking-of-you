@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 import json
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from astrbot.api import logger, star
 from astrbot.api.event import AstrMessageEvent, MessageChain, filter
@@ -114,7 +114,12 @@ class ThinkingOfYou(star.Star):
 
     # ---------------------------------------------------------------- thinking
 
+    def _jitter(self) -> float:
+        return max(0.0, min(0.9, float(self.cfg.get("timing_jitter", 0.2))))
+
     async def _loop(self) -> None:
+        from memory_core.now import jitter
+
         await asyncio.sleep(60)
         while True:
             try:
@@ -123,7 +128,7 @@ class ThinkingOfYou(star.Star):
                 raise
             except Exception as exc:  # noqa: BLE001
                 logger.warning(f"[thinking-of-you] tick failed: {exc}")
-            await asyncio.sleep(max(1, int(self.cfg.get("tick_minutes", 10))) * 60)
+            await asyncio.sleep(jitter(max(1, int(self.cfg.get("tick_minutes", 10))) * 60, self._jitter(), self.rng))
 
     async def think(self, *, dry_run: bool = False) -> dict:
         """One tick. dry_run: ignore timing rules, decide, but send nothing and change no state."""
@@ -138,7 +143,7 @@ class ThinkingOfYou(star.Star):
 
     async def _think(self, mem, provider_id: str, dry_run: bool) -> dict:
         from memory_core import Audience
-        from memory_core.now import _owner_messages, ago, describe
+        from memory_core.now import _owner_messages, ago, describe, jitter
 
         core, rules, now = mem.core, self._rules(), _now()
         state = await asyncio.to_thread(State.load, core)
@@ -146,13 +151,14 @@ class ThinkingOfYou(star.Star):
         owner_spaces = mem._owner_spaces()
         owner_times = await asyncio.to_thread(_owner_messages, core, owner_spaces, 400)
         owner_last = owner_times[0] if owner_times else None
-        ok, must_only, why = gate(state, now, owner_last, rules)
+        snap = await asyncio.to_thread(mem._snapshot)
+        ok, must_only, why = gate(state, now, owner_last, rules, asleep=getattr(snap, "asleep", None),
+                                  busy_minutes=jitter(rules.owner_busy_minutes, self._jitter(), self.rng))
         if dry_run:
             ok, must_only = True, False
         if not ok:
             return {"why": why}
 
-        snap = await asyncio.to_thread(mem._snapshot)
         cands = mistake_candidates(state)
         watermark = state.considered_until
         if not must_only:
@@ -244,7 +250,10 @@ class ThinkingOfYou(star.Star):
         """Send line by line like a person typing, record it, and add it to AstrBot's history."""
         from memory_core import Episode
 
+        from memory_core.now import jitter
+
         lines = [ln.strip() for ln in message.split("\n") if ln.strip()][:3]
+        await asyncio.sleep(jitter(60, self._jitter(), self.rng))  # a moment to type, not the instant she decides
         for i, line in enumerate(lines):
             if i:
                 await asyncio.sleep(self.rng.uniform(1.5, 3.5))
@@ -270,6 +279,8 @@ class ThinkingOfYou(star.Star):
         state.sent_today[kind] = state.sent_today.get(kind, 0) + 1
         state.unanswered += 1
         state.last_sent_at = now.isoformat()
+        gap = jitter(self._rules().min_gap_minutes, self._jitter(), self.rng)
+        state.next_after = (now + timedelta(minutes=gap)).isoformat()
 
     # ---------------------------------------------------------------- for other plugins (e.g. phone control)
 
