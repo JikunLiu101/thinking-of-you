@@ -1,0 +1,60 @@
+{
+  "enabled": {
+    "description": "Reach out on her own",
+    "type": "bool",
+    "default": true
+  },
+  "platforms": {
+    "description": "Platforms where she may reach the owner",
+    "type": "list",
+    "default": [
+      "webchat"
+    ],
+    "hint": "Only the owner, only in a private chat, only on these platforms. Never groups."
+  },
+  "tick_minutes": {
+    "description": "How often she checks what is on her mind (minutes)",
+    "type": "int",
+    "default": 10,
+    "hint": "A model call only happens when there is a thought."
+  },
+  "quiet_start": {
+    "description": "Quiet from (hour)",
+    "type": "int",
+    "default": 23
+  },
+  "quiet_end": {
+    "description": "Quiet until (hour)",
+    "type": "int",
+    "default": 9,
+    "hint": "Only a mistake that affects the owner is told during quiet hours."
+  },
+  "daily_cap": {
+    "description": "Messages she starts per day",
+    "type": "int",
+    "default": 3
+  },
+  "min_gap_minutes": {
+    "description": "Minutes between two messages she starts",
+    "type": "int",
+    "default": 120
+  },
+  "max_unanswered": {
+    "description": "Stop after N unanswered messages",
+    "type": "int",
+    "default": 2,
+    "hint": "Until the owner talks again."
+  },
+  "share_daily_cap": {
+    "description": "Shares sent right away per day",
+    "type": "int",
+    "default": 1,
+    "hint": "Time-limited ones excepted; the rest wait for the next visit."
+  },
+  "longing_chance": {
+    "description": "Chance per check to say she misses you (at full longing)",
+    "type": "float",
+    "default": 0.3,
+    "hint": "Scaled down at lower longing and at hours the owner is rarely around. Once per absence."
+  }
+}
