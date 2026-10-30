@@ -183,3 +183,18 @@ def test_gate_follows_her_schedule_and_drifting_gap():
     near = NOW - timedelta(minutes=22)
     assert gate(ready_state(), NOW, near, R, busy_minutes=24)[0] is False
     assert gate(ready_state(), NOW, near, R, busy_minutes=17)[0] is True
+
+
+def test_recall_block():
+    from tov.mind import State, recall_block
+    s = State()
+    assert recall_block(s, "老板") == "最近心里没想过什么特别的"
+    s.thoughts = [{"at": "2026-10-30T21:05:00+08:00", "kind": "longing", "about": "老板一天没来", "decision": "later",
+                   "reason": "他在忙", "message": "你今天好忙呀"},
+                  {"at": "2026-10-30T22:00:00+08:00", "kind": "share", "about": "B站新番", "decision": "no",
+                   "reason": "不新鲜", "message": ""}]
+    s.sent = [{"at": "2026-10-30T20:00:00+08:00", "text": "在吗", "answered_at": "x"}]
+    s.later = [{"text": "你今天好忙呀"}]
+    b = recall_block(s, "老板")
+    assert "10-30 21:05 想念：老板一天没来 → 先攒着（他在忙），想说的是「你今天好忙呀」" in b
+    assert "B站新番 → 没说（不新鲜）" in b and "「在吗」，老板回了" in b and "还攒着想跟老板说的" in b

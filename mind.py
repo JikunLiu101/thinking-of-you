@@ -357,3 +357,32 @@ def later_block(state: State, now: datetime, owner: str, rules: Rules, show_hour
     if not lines:
         return ""
     return "<on_your_mind>\n" + "\n".join(lines) + "\n</on_your_mind>"
+
+
+THOUGHT_NAMES = {"longing": "想念", "share": "想分享", "followup": "惦记", "mistake": "觉得自己做错了"}
+VERDICTS = {"now": "当时就说了", "later": "先攒着", "no": "没说"}
+
+
+def recall_block(state: State, owner: str, limit: int = 8) -> str:
+    """What she thought lately and what came of it, told back to her (newest last)."""
+    lines = []
+    for t in state.thoughts[-limit:]:
+        when = t.get("at", "")[5:16].replace("T", " ")
+        what = THOUGHT_NAMES.get(t.get("kind"), t.get("kind", ""))
+        line = f"- {when} {what}：{t.get('about', '')[:60]} → {VERDICTS.get(t.get('decision'), '没说')}"
+        if t.get("reason"):
+            line += f"（{t['reason'][:60]}）"
+        if t.get("message") and t.get("decision") in ("now", "later"):
+            line += f"，想说的是「{t['message'][:60]}」"
+        lines.append(line)
+    if not lines:
+        return "最近心里没想过什么特别的"
+    out = ["最近心里想过的（新的在后面）："] + lines
+    sent = state.sent[-3:]
+    if sent:
+        out.append(f"最近主动找{owner}说的：")
+        out += [f"- {s.get('at', '')[5:16].replace('T', ' ')}「{s.get('text', '')[:60]}」"
+                f"{'，' + owner + '回了' if s.get('answered_at') else '，还没回'}" for s in sent]
+    if state.later:
+        out.append(f"还攒着想跟{owner}说的：" + "；".join(i.get("text", "")[:40] for i in state.later[-4:]))
+    return "\n".join(out)

@@ -20,7 +20,7 @@ from astrbot.api.provider import ProviderRequest
 
 from .mind import (
     Rules, State, apply_rules, build_user, followup_candidates, gate, later_block, longing_candidate,
-    mistake_candidates, number, owner_hour_weight, parse, share_candidates, SYSTEM,
+    mistake_candidates, number, owner_hour_weight, parse, recall_block, share_candidates, SYSTEM,
 )
 
 MEMORY_CORE = "astrbot_plugin_memory_core"
@@ -79,7 +79,9 @@ class ThinkingOfYou(star.Star):
         r = self._rules()
         return [("thinking-of-you:reach-out", f"主动找{owner}说话",
                  f"不聊天的时候你也会时不时想到{owner}；真有话想说，会自己发消息给他，一天至多{r.daily_cap}次，"
-                 f"{r.quiet_start}点到第二天{r.quiet_end}点他休息时不打扰；不急的话会攒着，等他来了再说")]
+                 f"{r.quiet_start}点到第二天{r.quiet_end}点他休息时不打扰；不急的话会攒着，等他来了再说"),
+                ("thinking-of-you:recall", "回想自己最近想过什么",
+                 f"和{owner}私聊时，被问起或者自己想说时，用 thoughts_recall 翻出最近心里想过的事、当时为什么说或没说")]
 
     def _platforms(self) -> set[str]:
         return {str(p).strip() for p in self.cfg.get("platforms", ["webchat"]) if str(p).strip()}
@@ -330,6 +332,21 @@ class ThinkingOfYou(star.Star):
             return mem._console_denied(event)
         event.stop_event()
         return True
+
+    @filter.llm_tool(name="thoughts_recall")
+    async def tool_recall(self, event: AstrMessageEvent):
+        """Look back at what went through your mind lately when nobody was talking to you: what you thought
+        about, whether you said it, kept it for later or let it go, and why. Use it when asked what you have been
+        thinking, or why you did or did not reach out. Only in a private chat with your owner."""
+        mem = self._mem()
+        if mem is None:
+            return "现在想不起来"
+        if not self._owner_private(mem, event):
+            logger.info("[thinking-of-you] thoughts_recall refused outside the owner's private chat")
+            return f"心里想过的事只跟{mem.owner_title}私下说"
+        state = await asyncio.to_thread(State.load, mem.core)
+        logger.info(f"[thinking-of-you] she looks back at her thoughts ({len(state.thoughts)} kept)")
+        return recall_block(state, mem.owner_title)
 
     @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("tov_log")
