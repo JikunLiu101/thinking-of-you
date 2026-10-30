@@ -43,6 +43,12 @@ class ThinkingOfYou(star.Star):
     async def initialize(self) -> None:
         if self.cfg.get("enabled", True):
             self._task = asyncio.create_task(self._loop())
+            r = self._rules()
+            logger.info(f"[thinking-of-you] thinking about every {int(self.cfg.get('tick_minutes', 10))} minutes; "
+                        f"messages on {', '.join(sorted(self._platforms())) or '(no platform)'}, at most "
+                        f"{r.daily_cap} a day, quiet {r.quiet_start}:00-{r.quiet_end}:00")
+        else:
+            logger.info("[thinking-of-you] disabled")
 
     async def terminate(self) -> None:
         if self._task:
@@ -166,6 +172,7 @@ class ThinkingOfYou(star.Star):
         if dry_run:
             ok, must_only = True, False
         if not ok:
+            logger.debug(f"[thinking-of-you] not thinking now: {why}")
             return {"why": why}
 
         cands = mistake_candidates(state)
@@ -185,6 +192,7 @@ class ThinkingOfYou(star.Star):
             if not dry_run and watermark != state.considered_until:
                 state.considered_until = watermark
                 await asyncio.to_thread(state.save, core)
+            logger.debug(f"[thinking-of-you] nothing on her mind{f' ({why})' if why else ''}")
             return {"why": why or "心里没什么特别想说的"}
         number(cands)
 
@@ -224,7 +232,14 @@ class ThinkingOfYou(star.Star):
                 state.longing_sent_for = chosen.ref
             await self._send(mem, state, chosen.kind, chosen.message)
         await asyncio.to_thread(state.save, core)
-        logger.info(f"[thinking-of-you] {len(cands)} thoughts, sent: {chosen.kind if chosen else 'nothing'}")
+        decisions = {"now": "say now", "later": "keep for later", "no": "let go"}
+        logger.info(f"[thinking-of-you] {len(cands)} thought(s){f' (only mistakes: {why})' if must_only else ''}:")
+        for c, d in zip(cands, final):
+            changed = f", the model said {d.model_said}" if d.model_said and d.model_said != d.decision else ""
+            logger.info(f"[thinking-of-you]   {c.kind} 「{c.content[:40]}」 -> {decisions.get(d.decision, d.decision)}"
+                        f"{changed}: {d.reason[:60]}")
+        if chosen is not None:
+            logger.info(f"[thinking-of-you] sent ({chosen.kind}): {chosen.message[:80]}")
         return report
 
     @staticmethod
