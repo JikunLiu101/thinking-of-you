@@ -66,6 +66,15 @@ class ThinkingOfYou(star.Star):
                      share_daily_cap=int(c.get("share_daily_cap", 1)),
                      longing_chance=float(c.get("longing_chance", 0.3)))
 
+    def being_abilities(self, owner: str) -> list[tuple[str, str, str]]:
+        """What this plugin lets her do, as (key, name, how it works), for memory-core's list."""
+        if not self.cfg.get("enabled", True):
+            return []
+        r = self._rules()
+        return [("thinking-of-you:reach-out", f"主动找{owner}说话",
+                 f"不聊天的时候你也会时不时想到{owner}；真有话想说，会自己发消息给他，一天至多{r.daily_cap}次，"
+                 f"{r.quiet_start}点到第二天{r.quiet_end}点他休息时不打扰；不急的话会攒着，等他来了再说")]
+
     def _platforms(self) -> set[str]:
         return {str(p).strip() for p in self.cfg.get("platforms", ["webchat"]) if str(p).strip()}
 
