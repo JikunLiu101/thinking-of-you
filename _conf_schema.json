@@ -12,6 +12,12 @@
     ],
     "hint": "Only the owner, only in a private chat, only on these platforms. Never groups."
   },
+  "block_builtin_proactive": {
+    "description": "Take away AstrBot's own send-message and scheduling tools",
+    "type": "bool",
+    "default": true,
+    "hint": "send_message_to_user and future_task are removed from every request, so she can only reach out through this plugin (its limits, recorded in memory)."
+  },
   "tick_minutes": {
     "description": "How often she checks what is on her mind (minutes)",
     "type": "int",

@@ -24,6 +24,8 @@ from .mind import (
 )
 
 MEMORY_CORE = "astrbot_plugin_memory_core"
+# AstrBot gives the model these on its own; they would let her message or schedule outside the rules
+BUILTIN_PROACTIVE_TOOLS = ("send_message_to_user", "future_task")
 
 
 def _now() -> datetime:
@@ -91,7 +93,12 @@ class ThinkingOfYou(star.Star):
 
     @filter.on_llm_request()
     async def inject(self, event: AstrMessageEvent, req: ProviderRequest):
-        """In the owner's private chat: what she kept to tell them, and that they just answered her."""
+        """Everywhere: AstrBot's own send-message and scheduling tools are taken away, so every message she
+        starts goes through this plugin's rules (and into her memory). In the owner's private chat: what she kept
+        to tell them, and that they just answered her."""
+        if self.cfg.get("block_builtin_proactive", True) and req.func_tool is not None:
+            for name in BUILTIN_PROACTIVE_TOOLS:
+                req.func_tool.remove_tool(name)
         mem = self._mem()
         if mem is None or not self._owner_private(mem, event):
             return
