@@ -198,3 +198,16 @@ def test_recall_block():
     b = recall_block(s, "老板")
     assert "10-30 21:05 想念：老板一天没来 → 先攒着（他在忙），想说的是「你今天好忙呀」" in b
     assert "B站新番 → 没说（不新鲜）" in b and "「在吗」，老板回了" in b and "还攒着想跟老板说的" in b
+
+
+def test_strip_blocks_keeps_history_stable():
+    from tov.mind import strip_blocks
+    block = "<on_your_mind>\n- note\n</on_your_mind>"
+    history = [{"role": "user", "content": [{"type": "text", "text": "hi"}, {"type": "text", "text": block}]},
+               {"role": "assistant", "content": "ok"},
+               {"role": "user", "content": f"again\n\n{block}"},
+               {"role": "user", "content": [{"type": "text", "text": block}]}]
+    assert strip_blocks(history, ("on_your_mind",)) == 2
+    assert history[0]["content"] == [{"type": "text", "text": "hi"}]
+    assert history[2]["content"] == "again" and len(history[3]["content"]) == 1
+    assert strip_blocks(history, ("on_your_mind",)) == 0

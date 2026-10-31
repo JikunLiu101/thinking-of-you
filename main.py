@@ -17,10 +17,11 @@ from astrbot.api import logger, star
 from astrbot.api.event import AstrMessageEvent, MessageChain, filter
 from astrbot.api.message_components import Plain
 from astrbot.api.provider import ProviderRequest
+from astrbot.core.agent.message import TextPart
 
 from .mind import (
     Rules, State, apply_rules, build_user, followup_candidates, gate, later_block, longing_candidate,
-    mistake_candidates, number, owner_hour_weight, parse, recall_block, share_candidates, SYSTEM,
+    mistake_candidates, number, owner_hour_weight, parse, recall_block, share_candidates, strip_blocks, SYSTEM,
 )
 
 MEMORY_CORE = "astrbot_plugin_memory_core"
@@ -112,10 +113,15 @@ class ThinkingOfYou(star.Star):
     async def inject(self, event: AstrMessageEvent, req: ProviderRequest):
         """Everywhere: AstrBot's own send-message and scheduling tools are taken away, so every message she
         starts goes through this plugin's rules (and into her memory). In the owner's private chat: what she kept
-        to tell them, and that they just answered her."""
+        to tell them, and that they just answered her (with the user's message, so the system prompt stays the
+        same and the provider's prompt cache covers it; taken out of the earlier messages in the history)."""
         if self.cfg.get("block_builtin_proactive", True) and req.func_tool is not None:
             for name in BUILTIN_PROACTIVE_TOOLS:
                 req.func_tool.remove_tool(name)
+        try:
+            strip_blocks(req.contexts, ("on_your_mind",))
+        except Exception as exc:  # noqa: BLE001 - never block a reply
+            logger.warning(f"[thinking-of-you] history cleanup failed: {exc}")
         mem = self._mem()
         if mem is None or not self._owner_private(mem, event):
             return
@@ -127,7 +133,7 @@ class ThinkingOfYou(star.Star):
             return text
         text = await asyncio.to_thread(block)
         if text:
-            req.system_prompt = f"{(req.system_prompt or '').rstrip()}\n\n{text}\n"
+            req.extra_user_content_parts.append(TextPart(text=text))
 
     # ---------------------------------------------------------------- thinking
 

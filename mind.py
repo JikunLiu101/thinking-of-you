@@ -386,3 +386,51 @@ def recall_block(state: State, owner: str, limit: int = 8) -> str:
     if state.later:
         out.append(f"还攒着想跟{owner}说的：" + "；".join(i.get("text", "")[:40] for i in state.later[-4:]))
     return "\n".join(out)
+
+
+def strip_blocks(contexts: list, tags: tuple[str, ...]) -> int:
+    """Remove `<tag>...</tag>` blocks from the earlier user messages in the request history.
+
+    The block is added to the user's message for one reply only and is stored with it. Taking it out of the
+    history the same way each time keeps the history identical between requests (so the model provider's prompt
+    cache covers it) and stops old notes piling up. Works on OpenAI-style dicts or objects with role/content;
+    a message is never left empty. Returns how many blocks were removed."""
+    pattern = re.compile(r"\s*<(" + "|".join(re.escape(t) for t in tags) + r")>.*?</\1>\s*", re.S)
+
+    def get(obj, key):
+        return obj.get(key) if isinstance(obj, dict) else getattr(obj, key, None)
+
+    def put(obj, key, value):
+        if isinstance(obj, dict):
+            obj[key] = value
+        else:
+            setattr(obj, key, value)
+
+    removed = 0
+    for msg in contexts or []:
+        if get(msg, "role") != "user":
+            continue
+        content = get(msg, "content")
+        if isinstance(content, str):
+            new, n = pattern.subn("\n\n", content)
+            if n and new.strip():
+                put(msg, "content", new.strip())
+                removed += n
+        elif isinstance(content, list):
+            keep, edits, n_all = [], [], 0
+            for part in content:
+                text = get(part, "text")
+                if isinstance(text, str) and pattern.search(text):
+                    new, n = pattern.subn("\n\n", text)
+                    n_all += n
+                    if new.strip():
+                        edits.append((part, new.strip()))
+                        keep.append(part)
+                    continue
+                keep.append(part)
+            if n_all and keep:  # never leave a message empty
+                for part, new in edits:
+                    put(part, "text", new)
+                content[:] = keep
+                removed += n_all
+    return removed
