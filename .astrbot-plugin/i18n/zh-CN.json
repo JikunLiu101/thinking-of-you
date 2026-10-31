@@ -1,0 +1,54 @@
+{
+  "metadata": {
+    "display_name": "主动找你 thinking-of-you",
+    "short_desc": "角色心里真有事才主动找主人：想念、分享、惦记、做错，有硬性节制",
+    "desc": "每隔一会儿想一想：做错的事、主人的计划、上网看到的、想念。值得才马上说，其余攒着等主人来了再说。只发给主人私聊，夜里不打扰，每天有上限、连着没回就停，都由代码执行。需要 memory-core。"
+  },
+  "config": {
+    "enabled": {
+      "description": "主动找主人"
+    },
+    "platforms": {
+      "description": "可以发消息的平台",
+      "hint": "只给主人、只发私聊、只在这些平台。从不发到群里。"
+    },
+    "block_builtin_proactive": {
+      "description": "拿掉 AstrBot 自带的发消息和定时工具",
+      "hint": "每次请求前去掉 send_message_to_user 和 future_task，她只能通过这个插件主动说话（受这里的限制，也会记进记忆）。"
+    },
+    "tick_minutes": {
+      "description": "多久想一次（分钟）",
+      "hint": "有念头时才调用模型。"
+    },
+    "timing_jitter": {
+      "description": "时间浮动多少",
+      "hint": "0.2：每次等待（想一次、两次之间、“刚聊过”、打字）上下浮动 20%。0：准时。"
+    },
+    "quiet_start": {
+      "description": "几点开始安静",
+      "hint": "只在不知道她作息时用；平常她睡着时就安静（memory-core 的睡觉、起床时间）。"
+    },
+    "quiet_end": {
+      "description": "安静到几点",
+      "hint": "睡着或安静时段里，只说影响到主人的错。"
+    },
+    "daily_cap": {
+      "description": "每天最多主动说几次"
+    },
+    "min_gap_minutes": {
+      "description": "两次主动说话至少隔（分钟）"
+    },
+    "max_unanswered": {
+      "description": "连着几条没回就停",
+      "hint": "直到主人再说话。"
+    },
+    "share_daily_cap": {
+      "description": "每天最多马上分享几条",
+      "hint": "时效性强的除外；其余等主人下次来再说。"
+    },
+    "longing_chance": {
+      "description": "最想念时每次开口的概率",
+      "hint": "不那么想、或者主人平时很少在的钟点会更低。一次分开只说一次。"
+    }
+  }
+}
