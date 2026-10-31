@@ -166,13 +166,13 @@ class ThinkingOfYou(star.Star):
 
     async def _think(self, mem, provider_id: str, dry_run: bool) -> dict:
         from memory_core import Audience
-        from memory_core.now import _owner_messages, ago, describe, jitter
+        from memory_core.now import ago, describe, jitter, owner_messages
 
         core, rules, now = mem.core, self._rules(), _now()
         state = await asyncio.to_thread(State.load, core)
         state.roll_day(now.date())
         owner_spaces = mem._owner_spaces()
-        owner_times = await asyncio.to_thread(_owner_messages, core, owner_spaces, 400)
+        owner_times = await asyncio.to_thread(owner_messages, core, owner_spaces, 400)
         owner_last = owner_times[0] if owner_times else None
         snap = await asyncio.to_thread(mem._snapshot)
         ok, must_only, why = gate(state, now, owner_last, rules, asleep=getattr(snap, "asleep", None),
