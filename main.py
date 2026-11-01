@@ -40,6 +40,12 @@ class ThinkingOfYou(star.Star):
         self.rng = random.Random()
         self._lock = asyncio.Lock()
         self._task: asyncio.Task | None = None
+        try:
+            from .panel import Panel  # noqa: PLC0415
+
+            Panel(self).register()
+        except Exception as exc:  # noqa: BLE001 - the dashboard is optional
+            logger.warning(f"[thinking-of-you] dashboard not registered: {exc}")
 
     async def initialize(self) -> None:
         if self.cfg.get("enabled", True):
@@ -336,7 +342,7 @@ class ThinkingOfYou(star.Star):
 
     def _console_denied(self, event: AstrMessageEvent) -> bool:
         mem = self._mem()
-        if mem is not None and hasattr(mem, "_console_denied"):
+        if mem is not None and hasattr(mem, "owner_console"):
             return not mem.owner_console(event)
         event.stop_event()
         return True

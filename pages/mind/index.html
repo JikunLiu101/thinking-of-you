@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>主动找你</title>
+  <link rel="stylesheet" href="kit.css">
+  <script src="/api/plugin/page/bridge-sdk.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header class="head">
+      <div>
+        <h1>主动找你</h1>
+        <div class="sub">没人聊天时她心里冒出的念头：说了、攒着，还是放下了</div>
+      </div>
+      <div class="row">
+        <button id="think">试想一次</button>
+        <button id="refresh" class="ghost">刷新</button>
+      </div>
+    </header>
+
+    <div id="error" class="error" hidden></div>
+    <div id="notes"></div>
+    <div id="cards" class="cards"></div>
+
+    <div id="think-panel" class="panel" hidden>
+      <h2>试想一次（不发消息，也不改动什么）</h2>
+      <div id="think-result"></div>
+    </div>
+
+    <div class="grid2">
+      <div class="panel">
+        <h2><span>攒着等你来了再说的</span><button id="later-clear" class="small ghost">都不说了</button></h2>
+        <div id="later" class="list"></div>
+      </div>
+      <div class="panel">
+        <h2>她主动发出的</h2>
+        <div id="sent" class="list"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>最近的念头</h2>
+      <div id="thoughts" class="list"></div>
+    </div>
+
+    <div id="rules" class="small muted"></div>
+  </div>
+  <script src="kit.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

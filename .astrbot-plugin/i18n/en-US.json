@@ -3,5 +3,11 @@
     "display_name": "thinking-of-you",
     "short_desc": "Reaches out on its own only when something is really on its mind, with hard limits",
     "desc": "The persona reaches out on its own when something is really on its mind (missing you, something worth sharing, your plans, its own mistakes), with hard limits; other thoughts wait until you come back. Needs memory-core."
+  },
+  "pages": {
+    "mind": {
+      "title": "Thoughts",
+      "description": "What went through her mind, whether she said it, what she keeps for later"
+    }
   }
 }
