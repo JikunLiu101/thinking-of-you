@@ -106,15 +106,15 @@ class State:
 
 
 def gate(state: State, now: datetime, owner_last: datetime | None, rules: Rules, *, asleep: bool | None = None,
-         busy_minutes: float | None = None) -> tuple[bool, bool, str]:
+         busy_minutes: float | None = None, owner: str = "主人") -> tuple[bool, bool, str]:
     """(may reach out at all, only something that must be said, why not). `asleep`: from her own daily
     schedule (falls back to the quiet hours); `busy_minutes`: this tick's (drifting) idea of "just talked"."""
     local = now.astimezone()
     if not state.owner_umo:
-        return False, False, "还不知道去哪找爸爸（他得先在私聊里说过话）"
+        return False, False, f"还不知道去哪找{owner}（得先在私聊里说过话）"
     busy = rules.owner_busy_minutes if busy_minutes is None else busy_minutes
     if owner_last is not None and now - owner_last < timedelta(minutes=busy):
-        return False, False, "爸爸刚刚还在，不用特意去找"
+        return False, False, f"{owner}刚刚还在，不用特意去找"
     if state.unanswered >= rules.max_unanswered:
         return True, True, f"已经连着 {state.unanswered} 条没回了，先不打扰"
     if asleep if asleep is not None else in_quiet_hours(local, rules):
@@ -142,7 +142,8 @@ class Candidate:
 
 
 def longing_candidate(state: State, longing: float | None, owner_last: datetime | None, local_hour: int,
-                      hour_weight: float, rules: Rules, rng: random.Random, gap_text: str) -> Candidate | None:
+                      hour_weight: float, rules: Rules, rng: random.Random, gap_text: str,
+                      owner: str = "主人") -> Candidate | None:
     """Missing them is not enough to speak: only once per absence, with a chance that grows with longing."""
     if longing is None or longing < rules.longing_min or owner_last is None:
         return None
@@ -151,7 +152,7 @@ def longing_candidate(state: State, longing: float | None, owner_last: datetime 
     scale = (longing - rules.longing_min) / max(1e-6, 1 - rules.longing_min)
     if rng.random() >= rules.longing_chance * (0.3 + 0.7 * scale) * hour_weight:
         return None
-    return Candidate("", "longing", f"你挺想爸爸的，他上次来是{gap_text}", ref=owner_last.isoformat())
+    return Candidate("", "longing", f"你挺想{owner}的，上次来是{gap_text}", ref=owner_last.isoformat())
 
 
 def share_candidates(core, state: State, limit: int = 6) -> tuple[list[Candidate], str]:
@@ -293,7 +294,7 @@ def parse(text: str, cands: list[Candidate]) -> dict[str, Decision]:
 
 
 def apply_rules(cands: list[Candidate], decided: dict[str, Decision], state: State, rules: Rules,
-                must_only: bool) -> tuple[Decision | None, list[Decision]]:
+                must_only: bool, owner: str = "主人") -> tuple[Decision | None, list[Decision]]:
     """The code's last word. Returns (the one message to send now, all decisions after the rules)."""
     final = []
     for c in cands:
@@ -301,7 +302,7 @@ def apply_rules(cands: list[Candidate], decided: dict[str, Decision], state: Sta
         if c.kind == "mistake":
             d.decision = "now" if c.must else ("later" if d.decision == "no" else d.decision)
             if not d.message:
-                d.message = f"爸爸，我刚才做错了一件事：{c.content}"
+                d.message = f"{owner}，我刚才做错了一件事：{c.content}"
         elif c.kind == "share":
             total = sum(d.scores.values())
             timely = d.scores.get("timely", 1)

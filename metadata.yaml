@@ -1,6 +1,24 @@
 name: astrbot_plugin_thinking_of_you
-display_name: thinking-of-you
-desc: The persona reaches out on its own when something is really on its mind (missing you, something worth sharing, your plans, its own mistakes), with hard limits; other thoughts wait until you come back. Needs memory-core.
+display_name: 主动找你
+short_desc: "角色心里真有事才主动找主人：想念、分享、惦记、做错，有硬性节制"
+desc: "每隔一会儿想一想：做错的事、主人的计划、上网看到的、想念。值得才马上说，其余攒着等主人来了再说。只发给主人私聊，夜里不打扰，每天有上限、连着没回就停，都由代码执行。需要 memory-core。 The persona reaches out on its own when something is really on its mind (missing you, something worth sharing, your plans, its own mistakes), with hard limits; other thoughts wait until you come back. Needs memory-core."
 author: JikunLiu101
-version: 0.1.0
-repo: ""
+version: 0.2.0
+repo: https://github.com/JikunLiu101/thinking-of-you
+astrbot_version: ">=4.24.2"
+support_platforms:
+  - telegram
+  - aiocqhttp
+  - discord
+  - kook
+  - lark
+  - dingtalk
+  - wecom
+  - slack
+tags:
+  - 主动消息
+  - 陪伴
+  - 人格
+  - 记忆
+  - proactive
+social_link: https://github.com/JikunLiu101

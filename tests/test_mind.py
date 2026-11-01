@@ -73,10 +73,10 @@ class M:
 
 def test_followups():
     made = NOW - timedelta(days=7)
-    dentist = M("m1", "爸爸2026年11月7日要去看牙医", made, made)
-    old = M("m2", "爸爸10月20日去游泳", made - timedelta(days=30), made - timedelta(days=30))
-    future = M("m3", "爸爸11月20日出差", made, made)
-    known = M("m4", "爸爸11月6日要考试，考得不错", made, NOW - timedelta(hours=20))
+    dentist = M("m1", "主人2026年11月7日要去看牙医", made, made)
+    old = M("m2", "主人10月20日去游泳", made - timedelta(days=30), made - timedelta(days=30))
+    future = M("m3", "主人11月20日出差", made, made)
+    known = M("m4", "主人11月6日要考试，考得不错", made, NOW - timedelta(hours=20))
     out = followup_candidates([dentist, old, future, known], ready_state(), NOW)
     assert [c.ref for c in out] == ["m1"]
     assert followup_candidates([dentist], ready_state(), NOW.replace(hour=15)) == []  # not that evening yet
@@ -91,18 +91,18 @@ def _cands():
     return number([
         Candidate("", "share", "在B站看到《塔露拉上岛》\n  你当时想：好帅"),
         Candidate("", "share", "在IT之家看到《某手机发布》\n  你当时想：哦"),
-        Candidate("", "longing", "你挺想爸爸的，他上次来是 2 天前"),
-        Candidate("", "followup", "记忆：爸爸11月7日看牙医", ref="m1"),
+        Candidate("", "longing", "你挺想主人的，他上次来是 2 天前"),
+        Candidate("", "followup", "记忆：主人11月7日看牙医", ref="m1"),
     ])
 
 
 def _answer(**over):
     base = {
         "c1": {"decision": "now", "scores": {"related": 5, "feeling": 4, "timely": 4, "new": 4, "replyable": 4},
-               "message": "爸爸！塔露拉上岛了", "reason": "爸爸玩方舟"},
+               "message": "主人！塔露拉上岛了", "reason": "主人玩方舟"},
         "c2": {"decision": "later", "scores": {"related": 1, "feeling": 2, "timely": 2, "new": 3, "replyable": 2},
                "message": "看到个新手机", "reason": "一般"},
-        "c3": {"decision": "now", "message": "爸爸，想你了", "reason": "两天没来"},
+        "c3": {"decision": "now", "message": "主人，想你了", "reason": "两天没来"},
         "c4": {"decision": "now", "message": "牙看得怎么样呀", "reason": "今天看牙医"},
     }
     for k, v in over.items():
@@ -149,9 +149,9 @@ def test_garbage_from_the_model_says_nothing():
 
 
 def test_prompt_lists_interests_and_recent():
-    text = build_user(_cands(), ["爸爸喜欢明日方舟"], [{"text": "爸爸，想你了"}], "爸爸")
-    assert "- 爸爸喜欢明日方舟" in text and "- 爸爸，想你了" in text and "[c3]（想念）" in text
-    assert "（还不太清楚）" in build_user(_cands(), [], [], "爸爸")
+    text = build_user(_cands(), ["主人喜欢明日方舟"], [{"text": "主人，想你了"}], "主人")
+    assert "- 主人喜欢明日方舟" in text and "- 主人，想你了" in text and "[c3]（想念）" in text
+    assert "（还不太清楚）" in build_user(_cands(), [], [], "主人")
 
 
 # ---------------------------------------------------------------- when the owner is back
@@ -160,14 +160,14 @@ def test_prompt_lists_interests_and_recent():
 def test_later_and_answered():
     s = ready_state(later=[{"at": (NOW - timedelta(hours=3)).isoformat(), "kind": "share", "text": "塔露拉上岛了"},
                            {"at": (NOW - timedelta(days=3)).isoformat(), "kind": "share", "text": "太旧了"}],
-                    sent=[{"at": (NOW - timedelta(hours=2)).isoformat(), "kind": "longing", "text": "爸爸，想你了",
+                    sent=[{"at": (NOW - timedelta(hours=2)).isoformat(), "kind": "longing", "text": "主人，想你了",
                            "answered_at": ""}])
     s.owner_spoke(NOW)
-    block = later_block(s, NOW, "爸爸", R)
+    block = later_block(s, NOW, "主人", R)
     assert "塔露拉上岛了" in block and "太旧了" not in block and "他刚刚才回你" in block
     assert s.unanswered == 0
     # offered during one visit, then gone
-    assert later_block(s, NOW + timedelta(hours=3), "爸爸", R) == ""
+    assert later_block(s, NOW + timedelta(hours=3), "主人", R) == ""
 
 
 def test_gate_follows_her_schedule_and_drifting_gap():

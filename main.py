@@ -100,7 +100,7 @@ class ThinkingOfYou(star.Star):
             return
         if (event.get_platform_name() or "") not in self._platforms():
             return
-        space, _, _ = mem._where(event)
+        space, _, _ = mem.where(event)
 
         def write():
             state = State.load(mem.core)
@@ -158,7 +158,7 @@ class ThinkingOfYou(star.Star):
         mem = self._mem()
         if mem is None:
             return {"why": "没有 memory-core 插件"}
-        provider_id = mem._provider_id()
+        provider_id = mem.provider_id()
         if not provider_id:
             return {"why": "没有可用的聊天模型"}
         async with self._lock:
@@ -171,12 +171,13 @@ class ThinkingOfYou(star.Star):
         core, rules, now = mem.core, self._rules(), _now()
         state = await asyncio.to_thread(State.load, core)
         state.roll_day(now.date())
-        owner_spaces = mem._owner_spaces()
+        owner_spaces = mem.owner_spaces()
         owner_times = await asyncio.to_thread(owner_messages, core, owner_spaces, 400)
         owner_last = owner_times[0] if owner_times else None
-        snap = await asyncio.to_thread(mem._snapshot)
+        snap = await asyncio.to_thread(mem.snapshot)
         ok, must_only, why = gate(state, now, owner_last, rules, asleep=getattr(snap, "asleep", None),
-                                  busy_minutes=jitter(rules.owner_busy_minutes, self._jitter(), self.rng))
+                                  busy_minutes=jitter(rules.owner_busy_minutes, self._jitter(), self.rng),
+                                  owner=mem.owner_title)
         if dry_run:
             ok, must_only = True, False
         if not ok:
@@ -193,7 +194,8 @@ class ThinkingOfYou(star.Star):
             if not self._declined_longing_recently(state, now):
                 gap = ago(now - owner_last, owner_last) if owner_last else ""
                 c = longing_candidate(state, snap.longing, owner_last, now.hour,
-                                      owner_hour_weight(owner_times, now.hour), rules, self.rng, gap)
+                                      owner_hour_weight(owner_times, now.hour), rules, self.rng, gap,
+                                      owner=mem.owner_title)
                 if c is not None:
                     cands.append(c)
         if not cands:
@@ -211,13 +213,13 @@ class ThinkingOfYou(star.Star):
             hits = await asyncio.to_thread(core.recall, f"{owner}喜欢 关心 兴趣 游戏 最近在忙",
                                            Audience(space, owner_present=True), 8, reinforce=False)
             interests = [h.memory.text for h in hits]
-        system = SYSTEM.format(persona=mem._persona("self", "self-image", "voice"),
+        system = SYSTEM.format(persona=mem.persona("self", "self-image", "voice"),
                                now_note=describe(snap, owner_present=True, owner_title=owner), owner=owner)
         recent_chat = await asyncio.to_thread(self._recent_chat, core, space, owner, now)
         resp = await self.context.llm_generate(chat_provider_id=provider_id, system_prompt=system,
                                                prompt=build_user(cands, interests, state.sent, owner, recent_chat))
         decided = parse(resp.completion_text or "", cands)
-        chosen, final = apply_rules(cands, decided, state, rules, must_only)
+        chosen, final = apply_rules(cands, decided, state, rules, must_only, owner=mem.owner_title)
         report = {"why": why, "thoughts": [(c.kind, d.model_said, d.decision, d.reason, d.message)
                                            for c, d in zip(cands, final)],
                   "sent": chosen.message if chosen else ""}
@@ -335,7 +337,7 @@ class ThinkingOfYou(star.Star):
     def _console_denied(self, event: AstrMessageEvent) -> bool:
         mem = self._mem()
         if mem is not None and hasattr(mem, "_console_denied"):
-            return mem._console_denied(event)
+            return not mem.owner_console(event)
         event.stop_event()
         return True
 

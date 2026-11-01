@@ -1,6 +1,6 @@
-# 主动找你 thinking-of-you（AstrBot 插件）
+# 主动找你（AstrBot 插件）
 
-角色心里真有事，才主动来找主人。每隔一会儿想一次，大多数时候什么都不发；想到的事有三种去向：**现在说**、**攒着等主人来了再说**、**不说**。需要 [memory-core](https://github.com/JikunLiu101/memory-core)（状态和记忆都存在它的记忆目录里）。
+角色心里真有事，才主动来找主人。每隔一会儿想一次，大多数时候什么都不发；想到的事有三种去向：**现在说**、**攒着等主人来了再说**、**不说**。需要先装[记忆核心](https://github.com/JikunLiu101/astrbot_plugin_memory_core)（memory-core）插件（状态和记忆都存在它的记忆目录里）。
 
 ## 四种念头
 
@@ -41,3 +41,15 @@
 ## 给其他插件
 
 做错事时调用 `report_mistake(what, severity, affects_owner)`，她会按上面的规则决定要不要告诉主人。
+
+## 支持的平台
+
+只用 AstrBot 的通用消息事件，不依赖哪个平台独有的功能。需要的是：私聊里认得出谁是主人，并且平台允许机器人**主动**给对方发私聊消息（QQ 官方机器人、微信公众号这类限制主动消息的平台不合适，所以没列）。元数据里列的是满足这些的主流平台：Telegram、QQ（OneBot / aiocqhttp）、Discord、KOOK、飞书、钉钉、企业微信、Slack。**实际测过的只有 Telegram 和 AstrBot 自带的网页对话**，其他平台欢迎反馈。需要 AstrBot 4.24.2 及以上。
+
+## 借鉴
+
+思路参考了 Inner Thoughts 论文（[Proactive Conversational Agents with Inner Thoughts](https://arxiv.org/abs/2501.00383)：先产生念头、再打分决定说不说）和 [astrbot_plugin_proactive_chat](https://github.com/DBJD-CR/astrbot_plugin_proactive_chat)（安静时段、连着没回就停；AGPL，只借思路，没有用它的代码）。
+
+## 许可证
+
+Apache-2.0
